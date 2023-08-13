@@ -8,3 +8,5 @@ streamlit run --server.address 0.0.0.0 --server.headless true --server.enableCOR
 ### Accessing the Production URL
 
 https://personal-newsletter.brianjking.repl.co/
+
+Maybe switching to github
