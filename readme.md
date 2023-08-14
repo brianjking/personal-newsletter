@@ -1,12 +1,15 @@
 # Personal Newsletter Tool
 
-## How to Start the Service
+## Accessing the App
 
-streamlit run --server.address 0.0.0.0 --server.headless true --server.enableCORS=false --server.enableWebsocketCompression=false app.py
+To load the service simply click on the button below and enter the password. 
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://personal-news.streamlit.app/)
 
-### Accessing the Production URL
+### Using the Service
 
-https://personal-newsletter.brianjking.repl.co/
+* Add a URL
 
-Maybe switching to github
+* Click "Execute Summarization" to execute the summarization and send emails.
+
+* Click "Clear todo" to empty the URLs after sending emails.
