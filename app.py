@@ -20,7 +20,6 @@ streamlit_key = os.environ['streamlit_key']
 # Password protection
 password = st.sidebar.text_input("Enter password:", type="password")
 correct_password = streamlit_key
-#correct_password = "p@ssword"  # Set your password here
 
 if password == correct_password:
   url = st.text_input('Enter URL to add to todo.txt:')
