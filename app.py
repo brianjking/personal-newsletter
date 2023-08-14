@@ -1,6 +1,7 @@
 import os
 import smtplib
 import streamlit as st
+import langchain
 from email.mime.text import MIMEText
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chat_models import ChatOpenAI
