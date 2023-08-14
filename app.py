@@ -9,9 +9,6 @@ from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from datetime import datetime
 
-port = int(os.environ.get("PORT", 8080))
-st.set_option("server.port", port)
-
 st.title('Personal Newsletter Summarization')
 st.sidebar.title('Admin & Actions')
 
