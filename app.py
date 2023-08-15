@@ -10,13 +10,6 @@ from langchain.prompts import PromptTemplate
 from datetime import datetime
 from airtable import Airtable
 
-# Function to calculate tokens and cost
-def calculate_tokens_and_cost(response):
-    tokens_used = response['usage']['total_tokens']
-    cost_per_token = 0.06 / 1000  # Assuming $0.06 per 1000 tokens, adjust this value based on your pricing
-    cost = tokens_used * cost_per_token
-    return tokens_used, cost
-
 # Secrets
 my_secret = os.environ['OPENAI_API_KEY']
 postmark_secret = os.environ['postmark_key']
@@ -60,17 +53,21 @@ if password == correct_password:
         SUMMARY:"""
         PROMPT = PromptTemplate.from_template(prompt_template)
 
+        # Initializing LLM
+        llm = ChatOpenAI(openai_api_key=my_secret,
+                        temperature=0,
+                        model_name="gpt-3.5-turbo-16k")
+
+        llm_chain = LLMChain(llm=llm, prompt=PROMPT)
+
+        # Define the chain
+        chain = StuffDocumentsChain(llm_chain=llm_chain,
+                                    document_variable_name="text")
+
         for index, url in enumerate(urls, 1):
             print(f"Loading content from URL: {url.strip()}...")
             loader = WebBaseLoader(url.strip())
             docs = loader.load()
-
-            print("Initializing LLM...")
-            llm = ChatOpenAI(openai_api_key=my_secret,
-                            temperature=0,
-                            model_name="gpt-3.5-turbo-16k")
-
-            llm_chain = LLMChain(llm=llm, prompt=PROMPT)
 
             print("Loading and running summarization chain...")
             response = chain.run(docs)
