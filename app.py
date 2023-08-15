@@ -1,81 +1,95 @@
+from airtable import Airtable
 import os
 import smtplib
 import streamlit as st
-import logging
 from email.mime.text import MIMEText
-from urllib.parse import urlparse
-from datetime import datetime
-# Assuming the following imports are from your project
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import WebBaseLoader
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
+from datetime import datetime
 
-def is_valid_url(url):
-    """Validate URL."""
-    try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
-    except ValueError:
-        return False
+# Airtable settings
+AIRTABLE_API_KEY = 'your_airtable_api_key'
+BASE_ID = 'your_base_id'
+TABLE_NAME = 'your_table_name'
 
-def load_urls(file_path):
-    """Load URLs from file."""
-    with open(file_path, "r") as file:
-        return file.readlines()
-
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-logging.getLogger().addHandler(logging.StreamHandler())
-
-# Initialize or clear the todo.txt file
-if not os.path.exists('todo.txt'):
-    with open('todo.txt', 'w') as file:
-        pass
+airtable = Airtable(BASE_ID, TABLE_NAME, api_key=AIRTABLE_API_KEY)
 
 st.title('Personal Newsletter Summarization')
 st.sidebar.title('Admin & Actions')
 
-MY_SECRET = os.environ['OPENAI_API_KEY']
-POSTMARK_SECRET = os.environ['postmark_key']
-SENDER_KEY = os.environ['sender_key']
-STREAMLIT_KEY = os.environ['streamlit_key']
-RECEIVER_KEY = os.environ['receiver_key']
+my_secret = os.environ['OPENAI_API_KEY']
+postmark_secret = os.environ['postmark_key']
+sender_key = os.environ['sender_key']
+streamlit_key = os.environ['streamlit_key']
+receiver_key = os.environ['receiver_key']
 
 # Password protection
 password = st.sidebar.text_input("Enter password:", type="password")
-correct_password = STREAMLIT_KEY
+correct_password = streamlit_key
 
 if password == correct_password:
     url_input = st.text_input('Enter URL to add to todo.txt:').strip()
     if url_input and st.button('Add URL'):
-        if is_valid_url(url_input):  # Validate the URL before adding
-            with open('todo.txt', 'a') as file:
-                file.write(url_input + '\n')
-            st.success('URL added successfully!')
-        else:
-            st.error('Invalid URL. Please enter a valid URL.')
+        airtable.insert({'URL': url_input})
+        st.success('URL added successfully!')
 
     if st.sidebar.button('View URLs'):
-        with open('todo.txt', 'r') as file:
-            urls = file.readlines()
+        urls = [record['fields']['URL'] for record in airtable.get_all()]
         st.write(urls)
 
     if st.sidebar.button('Execute Summarization'):
-        try:
-            st.sidebar.success('Summarization process started...')
-            urls = load_urls("todo.txt")
-            all_summaries = ""
-            for index, url in enumerate(urls, 1):
-                url = url.strip()
-                if not url or not is_valid_url(url):  # Skip empty or invalid URLs
-                    continue
-                # ... rest of the summarization code ...
-        except Exception as exc:  # pylint: disable=broad-except
-            logging.error(f"An error occurred during summarization: {str(exc)}")
-            st.sidebar.error('An error occurred during summarization. Please check the logs for details.')
+        st.sidebar.success('Summarization process started...')
+        urls = [record['fields']['URL'] for record in airtable.get_all()]
+        all_summaries = ""
+
+        # Custom Prompt Template
+        prompt_template = """Write a high-level executive summary of the following text, and then list the vital key points in bullet form. The summary should serve as a TL/DR for the content and contain the most important information. If there are topics that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the document text does not focus on these topics you can include a section that talks about how to apply the information to local marketing.
+
+        {text}
+
+        SUMMARY:"""
+        PROMPT = PromptTemplate.from_template(prompt_template)
+
+        for index, url in enumerate(urls, 1):
+            print(f"Loading content from URL: {url.strip()}...")
+            loader = WebBaseLoader(url.strip())
+            docs = loader.load()
+
+            print("Initializing LLM...")
+            llm = ChatOpenAI(openai_api_key=my_secret,
+                            temperature=0,
+                            model_name="gpt-3.5-turbo-16k")
+
+            llm_chain = LLMChain(llm=llm, prompt=PROMPT)
+
+            print("Loading and running summarization chain...")
+            chain = StuffDocumentsChain(llm_chain=llm_chain,
+                                        document_variable_name="text")
+            summary = chain.run(docs)
+
+            print("Storing summary in a file...")
+            all_summaries += f"{index}. {url.strip()}\n{summary}\n\n"
+
+        print("Sending summaries via email...")
+        sender_email = sender_key
+        receiver_email = receiver_key
+        current_date = datetime.today().strftime('%Y-%m-%d')
+        subject = f"Daily Summaries - {current_date}"
+        message = MIMEText(all_summaries)
+        message["Subject"] = subject
+        message["From"] = sender_email
+        message["To"] = receiver_email
+
+        with smtplib.SMTP("smtp.postmarkapp.com", 587) as server:
+            server.starttls()
+            server.login(postmark_secret, postmark_secret)
+            server.sendmail(sender_email, receiver_email, message.as_string())
+
+        print("All tasks completed successfully!")
+        st.sidebar.success('Summarization process completed!')
+
 else:
-    st.sidebar.warning(
-        'Incorrect password. Please enter the correct password to proceed.')
+    st.sidebar.warning('Incorrect password. Please enter the correct password to proceed.')
