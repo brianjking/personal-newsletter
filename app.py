@@ -92,9 +92,10 @@ if password == correct_password:
 
         # Button to clear Airtable
         if st.sidebar.button('Clear URLs'):
-            for record in airtable.get_all():
-                airtable.delete(record['id'])
-            st.sidebar.success('URLs cleared successfully!')
+        record_ids = [record['id'] for record in airtable.get_all()]
+        for record_id in record_ids:
+            airtable.delete(record_id)
+        st.sidebar.success('URLs cleared successfully!')
 
 else:
     st.sidebar.warning('Incorrect password. Please enter the correct password to proceed.')
