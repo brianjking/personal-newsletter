@@ -10,13 +10,6 @@ from langchain.prompts import PromptTemplate
 from datetime import datetime
 from airtable import Airtable
 
-# Function to calculate tokens and cost
-def calculate_tokens_and_cost(response):
-    tokens_used = response['usage']['total_tokens']
-    cost_per_token = 0.06 / 1000  # Assuming $0.06 per 1000 tokens, adjust this value based on your pricing
-    cost = tokens_used * cost_per_token
-    return tokens_used, cost
-
 # Secrets
 my_secret = os.environ['OPENAI_API_KEY']
 postmark_secret = os.environ['postmark_key']
@@ -31,6 +24,13 @@ airtable = Airtable(BASE_ID, TABLE_NAME, api_key=AIRTABLE_API_KEY)
 
 st.title('Personal Newsletter Summarization')
 st.sidebar.title('Admin & Actions')
+
+# Function to calculate tokens and cost
+def calculate_tokens_and_cost(response):
+    tokens_used = response['usage']['total_tokens']
+    cost_per_token = 0.06 / 1000  # Assuming $0.06 per 1000 tokens, adjust this value based on your pricing
+    cost = tokens_used * cost_per_token
+    return tokens_used, cost
 
 # Password protection
 password = st.sidebar.text_input("Enter password:", type="password")
@@ -52,6 +52,7 @@ if password == correct_password:
         urls = [record['fields']['URL'] for record in airtable.get_all() if 'URL' in record['fields']]
         all_summaries = ""
         total_tokens_used = 0
+        total_cost = 0.0
 
         # Custom Prompt Template
         prompt_template = """Write a high-level executive summary of the following text, and then list the vital key points in bullet form. The summary should serve as a TL/DR for the content and contain the most important information. If there are topics that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the document text does not focus on these topics you can include a section that talks about how to apply the information to local marketing.
@@ -78,15 +79,13 @@ if password == correct_password:
                                         document_variable_name="text")
             summary, response = chain.run(docs)  # Assuming chain.run returns the response as well
 
+            # Calculate tokens and cost
             tokens_used, cost = calculate_tokens_and_cost(response)
             total_tokens_used += tokens_used
+            total_cost += cost
 
             print("Storing summary in a file...")
             all_summaries += f"{index}. {url.strip()}\n{summary}\n\n"
-
-        # Log the tokens and cost
-        st.write(f"Total tokens used: {total_tokens_used}")
-        st.write(f"Total cost: ${total_tokens_used * cost_per_token:.4f}")
 
         # Sending summaries via email
         sender_email = sender_key
@@ -104,6 +103,10 @@ if password == correct_password:
             server.sendmail(sender_email, receiver_email, message.as_string())
 
         st.sidebar.success('Summarization process completed!')
+
+        # Log the tokens and cost
+        st.write(f"Total Tokens used: {total_tokens_used}")
+        st.write(f"Total Cost: ${total_cost:.4f}")
 
         if st.sidebar.button('Clear URLs'):
             records = airtable.get_all()
