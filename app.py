@@ -3,13 +3,27 @@ import smtplib
 import streamlit as st
 import logging
 from email.mime.text import MIMEText
+from urllib.parse import urlparse
+from datetime import datetime
+# Assuming the following imports are from your project
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import WebBaseLoader
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
-from datetime import datetime
-from urllib.parse import urlparse
+
+def is_valid_url(url):
+    """Validate URL."""
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
+
+def load_urls(file_path):
+    """Load URLs from file."""
+    with open(file_path, "r") as file:
+        return file.readlines()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -21,32 +35,25 @@ if not os.path.exists('todo.txt'):
     with open('todo.txt', 'w') as file:
         pass
 
-def is_valid_url(url):
-    try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
-    except:
-        return False
-
 st.title('Personal Newsletter Summarization')
 st.sidebar.title('Admin & Actions')
 
-my_secret = os.environ['OPENAI_API_KEY']
-postmark_secret = os.environ['postmark_key']
-sender_key = os.environ['sender_key']
-streamlit_key = os.environ['streamlit_key']
-receiver_key = os.environ['receiver_key']
+MY_SECRET = os.environ['OPENAI_API_KEY']
+POSTMARK_SECRET = os.environ['postmark_key']
+SENDER_KEY = os.environ['sender_key']
+STREAMLIT_KEY = os.environ['streamlit_key']
+RECEIVER_KEY = os.environ['receiver_key']
 
 # Password protection
 password = st.sidebar.text_input("Enter password:", type="password")
-correct_password = streamlit_key
+correct_password = STREAMLIT_KEY
 
 if password == correct_password:
-    url = st.text_input('Enter URL to add to todo.txt:').strip()
-    if url and st.button('Add URL'):
-        if is_valid_url(url):  # Validate the URL before adding
+    url_input = st.text_input('Enter URL to add to todo.txt:').strip()
+    if url_input and st.button('Add URL'):
+        if is_valid_url(url_input):  # Validate the URL before adding
             with open('todo.txt', 'a') as file:
-                file.write(url + '\n')
+                file.write(url_input + '\n')
             st.success('URL added successfully!')
         else:
             st.error('Invalid URL. Please enter a valid URL.')
@@ -66,8 +73,8 @@ if password == correct_password:
                 if not url or not is_valid_url(url):  # Skip empty or invalid URLs
                     continue
                 # ... rest of the summarization code ...
-        except Exception as e:
-            logging.error(f"An error occurred during summarization: {str(e)}")
+        except Exception as exc:  # pylint: disable=broad-except
+            logging.error(f"An error occurred during summarization: {str(exc)}")
             st.sidebar.error('An error occurred during summarization. Please check the logs for details.')
 else:
     st.sidebar.warning(
