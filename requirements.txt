@@ -3,3 +3,4 @@ openai
 streamlit
 bs4
 fake_useragent
+airtable-python-wrapper
