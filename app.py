@@ -10,21 +10,27 @@ from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from datetime import datetime
 
+# Secrets
+my_secret = os.environ['OPENAI_API_KEY']
+postmark_secret = os.environ['postmark_key']
+sender_key = os.environ['sender_key']
+streamlit_key = os.environ['streamlit_key']
+receiver_key = os.environ['receiver_key']
+AIRTABLE_API_KEY = os.environ['airtable_key']
+BASE_ID = os.environ['base_id']
+TABLE_NAME = os.environ['table_name']
+
 # Airtable settings
-AIRTABLE_API_KEY = 'your_airtable_api_key'
-BASE_ID = 'your_base_id'
-TABLE_NAME = 'your_table_name'
+AIRTABLE_API_KEY = airtable_key
+BASE_ID = base_id
+TABLE_NAME = table_name
 
 airtable = Airtable(BASE_ID, TABLE_NAME, api_key=AIRTABLE_API_KEY)
 
 st.title('Personal Newsletter Summarization')
 st.sidebar.title('Admin & Actions')
 
-my_secret = os.environ['OPENAI_API_KEY']
-postmark_secret = os.environ['postmark_key']
-sender_key = os.environ['sender_key']
-streamlit_key = os.environ['streamlit_key']
-receiver_key = os.environ['receiver_key']
+
 
 # Password protection
 password = st.sidebar.text_input("Enter password:", type="password")
