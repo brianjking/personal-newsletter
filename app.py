@@ -17,7 +17,7 @@ sender_key = os.environ['sender_key']
 streamlit_key = os.environ['streamlit_key']
 receiver_key = os.environ['receiver_key']
 AIRTABLE_API_KEY = os.environ['airtable_key']
-BASE_ID = os.environ['base_id']
+BASE_ID = st.secrets['base_id']
 TABLE_NAME = os.environ['table_name']
 
 
