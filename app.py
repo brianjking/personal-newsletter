@@ -20,15 +20,10 @@ AIRTABLE_API_KEY = os.environ['airtable_key']
 BASE_ID = st.secrets['BASE_ID']
 TABLE_NAME = os.environ['TABLE_NAME']
 
-
-
-
 airtable = Airtable(BASE_ID, TABLE_NAME, api_key=AIRTABLE_API_KEY)
 
 st.title('Personal Newsletter Summarization')
 st.sidebar.title('Admin & Actions')
-
-
 
 # Password protection
 password = st.sidebar.text_input("Enter password:", type="password")
@@ -41,12 +36,13 @@ if password == correct_password:
         st.success('URL added successfully!')
 
     if st.sidebar.button('View URLs'):
-        urls = [record['fields']['URL'] for record in airtable.get_all()]
+        records = airtable.get_all()
+        urls = [record['fields']['URL'] for record in records if 'URL' in record['fields']]
         st.write(urls)
 
     if st.sidebar.button('Execute Summarization'):
         st.sidebar.success('Summarization process started...')
-        urls = [record['fields']['URL'] for record in airtable.get_all()]
+        urls = [record['fields']['URL'] for record in airtable.get_all() if 'URL' in record['fields']]
         all_summaries = ""
 
         # Custom Prompt Template
@@ -77,7 +73,7 @@ if password == correct_password:
             print("Storing summary in a file...")
             all_summaries += f"{index}. {url.strip()}\n{summary}\n\n"
 
-        print("Sending summaries via email...")
+        # Sending summaries via email
         sender_email = sender_key
         receiver_email = receiver_key
         current_date = datetime.today().strftime('%Y-%m-%d')
@@ -92,8 +88,13 @@ if password == correct_password:
             server.login(postmark_secret, postmark_secret)
             server.sendmail(sender_email, receiver_email, message.as_string())
 
-        print("All tasks completed successfully!")
         st.sidebar.success('Summarization process completed!')
+
+        # Button to clear Airtable
+        if st.sidebar.button('Clear URLs'):
+            for record in airtable.get_all():
+                airtable.delete(record['id'])
+            st.sidebar.success('URLs cleared successfully!')
 
 else:
     st.sidebar.warning('Incorrect password. Please enter the correct password to proceed.')
