@@ -30,7 +30,7 @@ password = st.sidebar.text_input("Enter password:", type="password")
 correct_password = streamlit_key
 
 if password == correct_password:
-    url_input = st.text_input('Enter URL to add to todo.txt:').strip()
+    url_input = st.text_input('Enter URL to add to add to the Airtable for processing for todays email summary:').strip()
     if url_input and st.button('Add URL'):
         airtable.insert({'URL': url_input})
         st.success('URL added successfully!')
