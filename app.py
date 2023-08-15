@@ -10,6 +10,17 @@ from langchain.prompts import PromptTemplate
 from datetime import datetime
 from airtable import Airtable
 
+def clear_airtable_records(api_key, base_key, table_name):
+    airtable = Airtable(base_key, table_name, api_key)
+    records = airtable.get_all()
+    if records:
+        record_ids = [record['id'] for record in records]
+        for record_id in record_ids:
+            airtable.delete(record_id)
+        st.sidebar.success('URLs cleared successfully!')
+    else:
+        st.sidebar.warning('No URLs to clear.')
+
 # Secrets
 my_secret = os.environ['OPENAI_API_KEY']
 postmark_secret = os.environ['postmark_key']
@@ -22,25 +33,12 @@ TABLE_NAME = os.environ['TABLE_NAME']
 
 airtable = Airtable(BASE_ID, TABLE_NAME, api_key=AIRTABLE_API_KEY)
 
-def clear_airtable_records(api_key, base_key, table_name):
-    airtable = Airtable(base_key, table_name, api_key)
-    records = airtable.get_all()
-    if records:
-        record_ids = [record['id'] for record in records]
-        for record_id in record_ids:
-            airtable.delete(record_id)
-        st.sidebar.success('URLs cleared successfully!')
-    else:
-        st.sidebar.warning('No URLs to clear.')
-
 st.title('Personal Newsletter Summarization')
 st.sidebar.title('Admin & Actions')
 
 # Password protection
 password = st.sidebar.text_input("Enter password:", type="password")
 correct_password = streamlit_key
-
-viewed_urls = False
 
 if password == correct_password:
     url_input = st.text_input('Enter URL to add to add to the Airtable for processing for todays email summary:').strip()
@@ -52,7 +50,6 @@ if password == correct_password:
         records = airtable.get_all()
         urls = [record['fields']['URL'] for record in records if 'URL' in record['fields']]
         st.write(urls)
-        viewed_urls = True
 
     if st.sidebar.button('Execute Summarization'):
         st.sidebar.success('Summarization process started...')
@@ -67,6 +64,7 @@ if password == correct_password:
         SUMMARY:"""
         PROMPT = PromptTemplate.from_template(prompt_template)
 
+        # Rest of the summarization code
         for index, url in enumerate(urls, 1):
             print(f"Loading content from URL: {url.strip()}...")
             loader = WebBaseLoader(url.strip())
@@ -104,15 +102,7 @@ if password == correct_password:
 
         st.sidebar.success('Summarization process completed!')
 
-    if viewed_urls:
-        if st.sidebar.button('Clear URLs'):
-            records = airtable.get_all()
-            if records:
-                record_ids = [record['id'] for record in records]
-                for record_id in record_ids:
-                    airtable.delete(record_id)
-                st.sidebar.success('URLs cleared successfully!')
-            else:
-                st.sidebar.warning('No URLs to clear.')
+    if st.sidebar.button('Clear URLs'):
+        clear_airtable_records(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 else:
     st.sidebar.warning('Incorrect password. Please enter the correct password to proceed.')
