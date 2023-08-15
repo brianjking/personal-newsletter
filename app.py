@@ -20,10 +20,8 @@ AIRTABLE_API_KEY = os.environ['airtable_key']
 BASE_ID = os.environ['base_id']
 TABLE_NAME = os.environ['table_name']
 
-# Airtable settings
-AIRTABLE_API_KEY = airtable_key
-BASE_ID = base_id
-TABLE_NAME = table_name
+
+
 
 airtable = Airtable(BASE_ID, TABLE_NAME, api_key=AIRTABLE_API_KEY)
 
