@@ -29,6 +29,8 @@ st.sidebar.title('Admin & Actions')
 password = st.sidebar.text_input("Enter password:", type="password")
 correct_password = streamlit_key
 
+viewed_urls = False
+
 if password == correct_password:
     url_input = st.text_input('Enter URL to add to add to the Airtable for processing for todays email summary:').strip()
     if url_input and st.button('Add URL'):
@@ -39,6 +41,7 @@ if password == correct_password:
         records = airtable.get_all()
         urls = [record['fields']['URL'] for record in records if 'URL' in record['fields']]
         st.write(urls)
+        viewed_urls = True
 
     if st.sidebar.button('Execute Summarization'):
         st.sidebar.success('Summarization process started...')
@@ -90,6 +93,7 @@ if password == correct_password:
 
         st.sidebar.success('Summarization process completed!')
 
+    if viewed_urls:
         if st.sidebar.button('Clear URLs'):
             records = airtable.get_all()
             if records:
