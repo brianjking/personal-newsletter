@@ -16,6 +16,7 @@ my_secret = os.environ['OPENAI_API_KEY']
 postmark_secret = os.environ['postmark_key']
 sender_key = os.environ['sender_key']
 streamlit_key = os.environ['streamlit_key']
+receiver_key = os.environ ['receiver_key']
 
 # Password protection
 password = st.sidebar.text_input("Enter password:", type="password")
@@ -55,7 +56,7 @@ SUMMARY:"""
 
     def send_email(summaries):
       sender_email = sender_key
-      receiver_email = sender_key
+      receiver_email = receiver_key
 
       # Get the current date in the desired format
       current_date = datetime.today().strftime('%Y-%m-%d')
