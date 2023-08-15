@@ -7,8 +7,6 @@ from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import WebBaseLoader
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
-from langchain.llms import OpenAI
-from langchain.callbacks import get_openai_callback
 from datetime import datetime
 from airtable import Airtable
 
@@ -55,28 +53,33 @@ if password == correct_password:
         SUMMARY:"""
         PROMPT = PromptTemplate.from_template(prompt_template)
 
-        # Initialize the LLM
-        llm = OpenAI(model_name="gpt-3.5-turbo-16k", n=2, best_of=2) # Adjust the model_name and other parameters as needed
+        for index, url in enumerate(urls, 1):
+            print(f"Loading content from URL: {url.strip()}...")
+            loader = WebBaseLoader(url.strip())
+            docs = loader.load()
 
-        # Wrap the calls inside the context manager
-        with get_openai_callback() as cb:
-            for index, url in enumerate(urls, 1):
-                print(f"Loading content from URL: {url.strip()}...")
-                loader = WebBaseLoader(url.strip())
-                docs = loader.load()
+            print("Initializing LLM...")
+            llm = ChatOpenAI(openai_api_key=my_secret,
+                            temperature=0,
+                            model_name="gpt-3.5-turbo-16k")
 
-                print("Initializing LLM...")
-                llm_chain = LLMChain(llm=llm, prompt=PROMPT)
+            llm_chain = LLMChain(llm=llm, prompt=PROMPT)
 
-                print("Loading and running summarization chain...")
-                chain = StuffDocumentsChain(llm_chain=llm_chain, document_variable_name="text")
-                summary = chain.run(docs)
+            print("Loading and running summarization chain...")
+            chain = StuffDocumentsChain(llm_chain=llm_chain,
+                                        document_variable_name="text")
+            response = chain.run(docs)
+            summary = response['choices'][0]['text'].strip()
 
-                print("Storing summary in a file...")
-                all_summaries += f"{index}. {url.strip()}\n{summary}\n\n"
+            print("Storing summary in a file...")
+            all_summaries += f"{index}. {url.strip()}\n{summary}\n\n"
 
-            print(f"Tokens Used: {cb.total_tokens}")
-            print(f"Total Cost (USD): ${cb.total_cost}")
+            # Calculate tokens and cost
+            tokens_used, cost = calculate_tokens_and_cost(response)
+
+            # Log the tokens and cost
+            st.write(f"Tokens used: {tokens_used}")
+            st.write(f"Cost: ${cost:.4f}")
 
         # Sending summaries via email
         sender_email = sender_key
