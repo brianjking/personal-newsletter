@@ -1,4 +1,3 @@
-from airtable import Airtable
 import os
 import smtplib
 import streamlit as st
@@ -9,6 +8,7 @@ from langchain.document_loaders import WebBaseLoader
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from datetime import datetime
+from airtable import Airtable
 
 # Secrets
 my_secret = os.environ['OPENAI_API_KEY']
@@ -17,8 +17,8 @@ sender_key = os.environ['sender_key']
 streamlit_key = os.environ['streamlit_key']
 receiver_key = os.environ['receiver_key']
 AIRTABLE_API_KEY = os.environ['airtable_key']
-BASE_ID = st.secrets['base_id']
-TABLE_NAME = os.environ['table_name']
+BASE_ID = st.secrets['BASE_ID']
+TABLE_NAME = os.environ['TABLE_NAME']
 
 
 
