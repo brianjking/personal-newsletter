@@ -22,6 +22,17 @@ TABLE_NAME = os.environ['TABLE_NAME']
 
 airtable = Airtable(BASE_ID, TABLE_NAME, api_key=AIRTABLE_API_KEY)
 
+def clear_airtable_records(api_key, base_key, table_name):
+    airtable = Airtable(base_key, table_name, api_key)
+    records = airtable.get_all()
+    if records:
+        record_ids = [record['id'] for record in records]
+        for record_id in record_ids:
+            airtable.delete(record_id)
+        st.sidebar.success('URLs cleared successfully!')
+    else:
+        st.sidebar.warning('No URLs to clear.')
+
 st.title('Personal Newsletter Summarization')
 st.sidebar.title('Admin & Actions')
 
