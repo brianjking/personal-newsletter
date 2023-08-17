@@ -1,5 +1,6 @@
 """
-Module for Personal Newsletter Summarization using Streamlit, Airtable, and custom summarization logic.
+Module for Personal Newsletter Summarization using Streamlit,
+Airtable, and custom summarization logic.
 """
 
 from datetime import datetime
@@ -83,12 +84,14 @@ if password == correct_password:
             ALL_SUMMARIES = ""
 
             # Custom Prompt Template
+            # Custom Prompt Template
             PROMPT_TEMPLATE = (
                 "Write a high-level executive summary of the following text, and then list the vital key points in bullet form. "
                 "The summary should serve as a TL/DR for the content and contain the most important information. If there are topics "
                 "that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents "
                 "be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the "
-                "document text does not focus on these topics you can include a section that talks about how to apply the information to local marketing."
+                "document text does not focus on these topics you can include a section that talks about how to apply the information to local "
+                "marketing.\n\n{text}\n\nSUMMARY:"
             )
             PROMPT_TEMPLATE += "\n\n{text}\n\nSUMMARY:"
             PROMPT = PromptTemplate.from_template(PROMPT_TEMPLATE)
