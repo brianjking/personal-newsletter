@@ -1,5 +1,6 @@
 """
-Module for Personal Newsletter Summarization using Streamlit, Airtable, and custom summarization logic.
+Module for Personal Newsletter Summarization using Streamlit, Airtable, and custom
+summarization logic.
 """
 
 from datetime import datetime
@@ -29,7 +30,7 @@ def clear_airtable_records(api_key, base_key, table_name):
             st.sidebar.success('URLs cleared successfully!')
         else:
             st.sidebar.warning('No URLs to clear.')
-    except Exception as clear_error:  # Specific exception type should be replaced with Exception
+    except Exception as clear_error:
         st.sidebar.error(f"An error occurred while clearing URLs: {str(clear_error)}")
 
 
@@ -63,7 +64,7 @@ if password == correct_password:
         try:
             airtable.insert({'URL': url_input})
             st.success('URL added successfully!')
-        except Exception as add_error:  # Specific exception type should be replaced with Exception
+        except Exception as add_error:
             st.error(f"An error occurred while adding URL: {str(add_error)}")
 
     # View URLs
@@ -72,7 +73,7 @@ if password == correct_password:
             records = airtable.get_all()
             urls = [record['fields']['URL'] for record in records if 'URL' in record['fields']]
             st.write(urls)
-        except Exception as view_error:  # Specific exception type should be replaced with Exception
+        except Exception as view_error:
             st.error(f"An error occurred while fetching URLs: {str(view_error)}")
 
     # Execute Summarization
@@ -88,9 +89,9 @@ if password == correct_password:
                 "The summary should serve as a TL/DR for the content and contain the most important information. If there are topics "
                 "that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents "
                 "be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the "
-                "document text does not focus on these topics you can include a section that talks about how to apply the information to local marketing.\n\n"
-                "{text}\n\nSUMMARY:"
-            )  # Broken into multiple lines
+                "document text does not focus on these topics you can include a section that talks about how to apply the information to local marketing."
+                "\n\n{text}\n\nSUMMARY:"
+            )
             PROMPT = PromptTemplate.from_template(PROMPT_TEMPLATE)
 
             # Summarization code
@@ -130,7 +131,7 @@ if password == correct_password:
                 server.sendmail(sender_email, receiver_email, message.as_string())
 
             st.sidebar.success('Summarization process completed!')
-        except Exception as summarize_error:  # Specific exception type should be replaced with Exception
+        except Exception as summarize_error:
             st.sidebar.error(f"An error occurred during summarization: {str(summarize_error)}")
 
     # Clear URLs
