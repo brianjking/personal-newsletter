@@ -89,11 +89,11 @@ if password == correct_password:
 
             # Custom Prompt Template
             PROMPT_TEMPLATE = (
-                "Write a high-level executive summary of the following text, and then list the vital key points in bullet form. " # noqa
-                "The summary should serve as a TL/DR for the content and contain the most important information. If there are topics " # noqa
-                "that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents " # noqa
-                "be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the "# noqa
-                "document text does not focus on these topics you can include a section that talks about how to apply the information to local " # noqa
+                "Write a high-level executive summary of the following text, and then list the vital key points in bullet form. " # pylint: disable=C0301
+                "The summary should serve as a TL/DR for the content and contain the most important information. If there are topics " # pylint: disable=C0301
+                "that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents " # pylint: disable=C0301
+                "be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the "# pylint: disable=C0301
+                "document text does not focus on these topics you can include a section that talks about how to apply the information to local " # pylint: disable=C0301
                 "marketing.\n\n{text}\n\nSUMMARY:"
             )
             PROMPT_TEMPLATE += "\n\n{text}\n\nSUMMARY:"
