@@ -88,7 +88,6 @@ if password == correct_password:
             ALL_SUMMARIES = ""
 
             # Custom Prompt Template
-            # Custom Prompt Template
             PROMPT_TEMPLATE = (
                 "Write a high-level executive summary of the following text, and then list the vital key points in bullet form. "
                 "The summary should serve as a TL/DR for the content and contain the most important information. If there are topics "
