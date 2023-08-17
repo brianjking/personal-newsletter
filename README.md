@@ -39,7 +39,9 @@ The "roadmap" is split into 3 sections and for siplicities sake, it will all be 
 - [x] Add logic to clear URLs from the Airtable queue
 - [ ] Add tracking for tokens used/cost
 - [x] Add fakeuseragent to requirements.txt 
-- [ ] Confirm fakeuseragent actually works
+- [x] Confirm fakeuseragent actually works
+- [x] fix Pylint tests
+- [ ] actually make the code pass the tests
 
 ### To Do Personal
 
