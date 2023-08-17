@@ -31,7 +31,8 @@ def clear_airtable_records(api_key, base_key, table_name):
         else:
             st.sidebar.warning('No URLs to clear.')
     except Exception as clear_error:  # Renamed variable
-        st.sidebar.error(f"An error occurred while clearing URLs: {str(clear_error)}")
+        st.sidebar.error(
+            f"An error occurred while clearing URLs: {str(clear_error)}")
 
 
 # Secrets
@@ -71,16 +72,19 @@ if password == correct_password:
     if st.sidebar.button('View URLs'):
         try:
             records = airtable.get_all()
-            urls = [record['fields']['URL'] for record in records if 'URL' in record['fields']]
+            urls = [record['fields']['URL']
+                    for record in records if 'URL' in record['fields']]
             st.write(urls)
         except Exception as view_error:  # Renamed variable
-            st.error(f"An error occurred while fetching URLs: {str(view_error)}")
+            st.error(
+                f"An error occurred while fetching URLs: {str(view_error)}")
 
     # Execute Summarization
     if st.sidebar.button('Execute Summarization'):
         try:
             st.sidebar.success('Summarization process started...')
-            urls = [record['fields']['URL'] for record in airtable.get_all() if 'URL' in record['fields']]
+            urls = [record['fields']['URL']
+                    for record in airtable.get_all() if 'URL' in record['fields']]
             ALL_SUMMARIES = ""
 
             # Custom Prompt Template
@@ -104,8 +108,8 @@ if password == correct_password:
 
                 print("Initializing LLM...")
                 llm = ChatOpenAI(openai_api_key=MY_SECRET,
-                                temperature=0,
-                                model_name="gpt-3.5-turbo-16k")
+                                 temperature=0,
+                                 model_name="gpt-3.5-turbo-16k")
 
                 llm_chain = LLMChain(llm=llm, prompt=PROMPT)
 
@@ -130,14 +134,17 @@ if password == correct_password:
             with smtplib.SMTP("smtp.postmarkapp.com", 587) as server:
                 server.starttls()
                 server.login(POSTMARK_SECRET, POSTMARK_SECRET)
-                server.sendmail(sender_email, receiver_email, message.as_string())
+                server.sendmail(sender_email, receiver_email,
+                                message.as_string())
 
             st.sidebar.success('Summarization process completed!')
         except Exception as summarize_error:  # Renamed variable
-            st.sidebar.error(f"An error occurred during summarization: {str(summarize_error)}")
+            st.sidebar.error(
+                f"An error occurred during summarization: {str(summarize_error)}")
 
     # Clear URLs
     if st.sidebar.button('Clear URLs'):
         clear_airtable_records(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 else:
-    st.sidebar.warning('Incorrect password. Please enter the correct password to proceed.')
+    st.sidebar.warning(
+        'Incorrect password. Please enter the correct password to proceed.')
