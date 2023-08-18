@@ -118,7 +118,7 @@ if password == correct_password:
                     loader = WebBaseLoader(url)
                 elif youtube_video_id:
                     print(f"Loading transcript from YouTube Video ID: {youtube_video_id}...")
-                    loader = YouTubeTranscriptLoader(youtube_video_id)
+                    loader = YoutubeLoader(youtube_video_id)
 
                 docs = loader.load()
 
