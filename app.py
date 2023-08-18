@@ -5,6 +5,8 @@ Airtable, and custom summarization logic.
 
 from datetime import datetime
 from email.mime.text import MIMEText
+from requests.exceptions import RequestException
+from json.decoder import JSONDecodeError
 import os
 import smtplib
 import streamlit as st
@@ -30,10 +32,9 @@ def clear_airtable_records(api_key, base_key, table_name):
             st.sidebar.success('URLs cleared successfully!')
         else:
             st.sidebar.warning('No URLs to clear.')
-    except Exception as clear_error:  # Renamed variable
+    except (RequestException, JSONDecodeError) as clear_error:
         st.sidebar.error(
             f"An error occurred while clearing URLs: {str(clear_error)}")
-
 
 # Secrets
 MY_SECRET = os.environ['OPENAI_API_KEY']
@@ -65,7 +66,7 @@ if password == correct_password:
         try:
             airtable.insert({'URL': url_input})
             st.success('URL added successfully!')
-        except Exception as add_error:  # Renamed variable
+        except (RequestException, JSONDecodeError) as add_error:
             st.error(f"An error occurred while adding URL: {str(add_error)}")
 
     # View URLs
@@ -75,7 +76,7 @@ if password == correct_password:
             urls = [record['fields']['URL']
                     for record in records if 'URL' in record['fields']]
             st.write(urls)
-        except Exception as view_error:  # Renamed variable
+        except (RequestException, JSONDecodeError) as view_error:
             st.error(
                 f"An error occurred while fetching URLs: {str(view_error)}")
 
@@ -137,7 +138,7 @@ if password == correct_password:
                                 message.as_string())
 
             st.sidebar.success('Summarization process completed!')
-        except Exception as summarize_error:  # Renamed variable
+        except (RequestException, JSONDecodeError) as summarize_error:
             st.sidebar.error(
                 f"An error occurred during summarization: {str(summarize_error)}")
 
