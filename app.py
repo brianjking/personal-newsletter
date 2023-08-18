@@ -5,10 +5,10 @@ Airtable, and custom summarization logic.
 
 from datetime import datetime
 from email.mime.text import MIMEText
-from requests.exceptions import RequestException
-from json.decoder import JSONDecodeError
 import os
 import smtplib
+from json.decoder import JSONDecodeError
+from requests.exceptions import RequestException
 import streamlit as st
 from airtable import Airtable
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
