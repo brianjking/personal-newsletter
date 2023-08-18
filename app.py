@@ -11,12 +11,14 @@ from json.decoder import JSONDecodeError
 from requests.exceptions import RequestException
 import streamlit as st
 from airtable import Airtable
+from langchain.chains.mapreduce import MapReduceChain
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.chains import ReduceDocumentsChain, MapReduceDocumentsChain
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import WebBaseLoader
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
-import textwrap  # Added for chunking
 
 
 def clear_airtable_records(api_key, base_key, table_name):
@@ -36,14 +38,6 @@ def clear_airtable_records(api_key, base_key, table_name):
     except (RequestException, JSONDecodeError) as clear_error:
         st.sidebar.error(
             f"An error occurred while clearing URLs: {str(clear_error)}")
-
-
-def split_into_chunks(text, max_tokens=16385):
-    """
-    Function to split the text into chunks that fit within the model's context length.
-    """
-    # Splitting the text into chunks using textwrap
-    return textwrap.wrap(text, max_tokens)
 
 
 # Secrets
@@ -98,43 +92,37 @@ if password == correct_password:
                     for record in airtable.get_all() if 'URL' in record['fields']]
             ALL_SUMMARIES = ""
 
-            # Custom Prompt Template
-            PROMPT_TEMPLATE = (
-                "Write a high-level executive summary of the following text, and then list the vital key points in bullet form. "  # pylint: disable=C0301
-                "The summary should serve as a TL/DR for the content and contain the most important information. If there are topics "  # pylint: disable=C0301
-                "that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents "  # pylint: disable=C0301
-                "be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the "  # pylint: disable=C0301
-                "document text does not focus on these topics you can include a section that talks about how to apply the information to local "  # pylint: disable=C0301
-                "marketing.\n\n{text}\n\nSUMMARY:"
-            )
-            PROMPT_TEMPLATE += "\n\n{text}\n\nSUMMARY:"
-            PROMPT = PromptTemplate.from_template(PROMPT_TEMPLATE)
+            # Initialize LLM
+            llm = ChatOpenAI(openai_api_key=MY_SECRET,
+                             temperature=0,
+                             model_name="gpt-3.5-turbo-16k")
 
-            # Summarization code with chunking
+            # Map-Reduce Summarization code
             for index, url in enumerate(urls, 1):
                 print(f"Loading content from URL: {url.strip()}...")
                 loader = WebBaseLoader(url.strip())
                 docs = loader.load()
 
-                # Split the documents into chunks
-                chunks = split_into_chunks(docs, max_tokens=16385)
+                # Map
+                map_template = """The following is a set of documents\n{docs}\nBased on this list of docs, please identify the main themes \nHelpful Answer:"""
+                map_prompt = PromptTemplate.from_template(map_template)
+                map_chain = LLMChain(llm=llm, prompt=map_prompt)
 
-                ALL_SUMMARIES += f"{index}. {url.strip()}\n"
-                for chunk in chunks:
-                    print("Initializing LLM...")
-                    llm = ChatOpenAI(openai_api_key=MY_SECRET,
-                                     temperature=0,
-                                     model_name="gpt-3.5-turbo-16k")
+                # Reduce
+                reduce_template = """The following is set of summaries:\n{doc_summaries}\nTake these and distill it into a final, consolidated summary of the main themes. \nHelpful Answer:"""
+                reduce_prompt = PromptTemplate.from_template(reduce_template)
+                reduce_chain = LLMChain(llm=llm, prompt=reduce_prompt)
+                combine_documents_chain = StuffDocumentsChain(llm_chain=reduce_chain, document_variable_name="doc_summaries")
+                reduce_documents_chain = ReduceDocumentsChain(combine_documents_chain=combine_documents_chain, collapse_documents_chain=combine_documents_chain, token_max=4000)
 
-                    llm_chain = LLMChain(llm=llm, prompt=PROMPT)
+                # Combining documents by mapping a chain over them, then combining results
+                map_reduce_chain = MapReduceDocumentsChain(llm_chain=map_chain, reduce_documents_chain=reduce_documents_chain, document_variable_name="docs", return_intermediate_steps=False)
+                text_splitter = CharacterTextSplitter.from_tiktoken_encoder(chunk_size=1000, chunk_overlap=0)
+                split_docs = text_splitter.split_documents(docs)
+                summary = map_reduce_chain.run(split_docs)
 
-                    print("Loading and running summarization chain...")
-                    chain = StuffDocumentsChain(llm_chain=llm_chain,
-                                                document_variable_name="text")
-                    summary = chain.run(chunk)
-
-                    print("Storing summary in a file...")
-                    ALL_SUMMARIES += f"{summary}\n\n"
+                print("Storing summary in a file...")
+                ALL_SUMMARIES += f"{index}. {url.strip()}\n{summary}\n\n"
 
             # Sending summaries via email
             sender_email = SENDER_KEY
