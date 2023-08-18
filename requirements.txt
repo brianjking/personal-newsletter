@@ -7,3 +7,6 @@ airtable-python-wrapper
 tiktoken
 youtube-transcript-api 
 pytube
+yt_dlp
+librosa
+pydub
