@@ -16,7 +16,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.chains import ReduceDocumentsChain, MapReduceDocumentsChain
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chat_models import ChatOpenAI
-from langchain.document_loaders import WebBaseLoader, YouTubeTranscriptLoader
+from langchain.document_loaders import WebBaseLoader, YoutubeLoader
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 
