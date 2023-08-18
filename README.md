@@ -29,6 +29,8 @@ The "roadmap" is split into 3 sections and for siplicities sake, it will all be 
 
 ## To Do General - (Both)
 
+
+- [ ] Add chunking logic for handling content over 16k tokens
 - [ ] Allow for the user to add some context to the URL to augment the summary 
 - [ ] Allow for the user to add who submitted the URL and added content (ie: the email would show that https://perplexity.ai was submitted by BK and that they also included "This is a nice search engine powered by GPT-4 NLP" it would include this + the LLM powered summary in the email along with the URL).  
 - [ ] Allow loading PDF files to a folder and have these chunked and summarized in conjunction with the URLs.
