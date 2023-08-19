@@ -11,7 +11,6 @@ from datetime import datetime
 from airtable import Airtable
 from largeContext import sliding_window, process_windows, combine_summaries
 
-
 # Function to clear Airtable records
 def clear_airtable_records(api_key, base_key, table_name):
     try:
@@ -94,11 +93,6 @@ if password == correct_password:
                                 model_name="gpt-3.5-turbo-16k")
 
                 llm_chain = LLMChain(llm=llm, prompt=PROMPT)
-
-                #print("Loading and running summarization chain...")
-                #chain = StuffDocumentsChain(llm_chain=llm_chain,
-                                            #document_variable_name="text")
-                #summary = chain.run(docs)
 
                 # Set window size and overlap size
                 window_size = 4096
