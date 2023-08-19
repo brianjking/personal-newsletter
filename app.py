@@ -1,5 +1,5 @@
 """
-Module for Personal Newsletter and YouTube Transcript Summarization using Streamlit,
+Module for Personal Newsletter Summarization using Streamlit,
 Airtable, and custom summarization logic.
 """
 
@@ -11,12 +11,9 @@ from json.decoder import JSONDecodeError
 from requests.exceptions import RequestException
 import streamlit as st
 from airtable import Airtable
-from langchain.chains.mapreduce import MapReduceChain
-from langchain.text_splitter import TokenTextSplitter
-from langchain.chains import ReduceDocumentsChain, MapReduceDocumentsChain
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chat_models import ChatOpenAI
-from langchain.document_loaders import WebBaseLoader, YoutubeLoader
+from langchain.document_loaders import WebBaseLoader
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 
@@ -32,13 +29,12 @@ def clear_airtable_records(api_key, base_key, table_name):
             record_ids = [record['id'] for record in records_list]
             for record_id in record_ids:
                 airtable_instance.delete(record_id)
-            st.sidebar.success('URLs and YouTube Video IDs cleared successfully!')
+            st.sidebar.success('URLs cleared successfully!')
         else:
-            st.sidebar.warning('No URLs or YouTube Video IDs to clear.')
+            st.sidebar.warning('No URLs to clear.')
     except (RequestException, JSONDecodeError) as clear_error:
         st.sidebar.error(
-            f"An error occurred while clearing URLs and YouTube Video IDs: {str(clear_error)}")
-
+            f"An error occurred while clearing URLs: {str(clear_error)}")
 
 # Secrets
 MY_SECRET = os.environ['OPENAI_API_KEY']
@@ -54,7 +50,7 @@ TABLE_NAME = os.environ['TABLE_NAME']
 airtable = Airtable(BASE_ID, TABLE_NAME, api_key=AIRTABLE_API_KEY)
 
 # Streamlit UI
-st.title('Personal Newsletter and YouTube Transcript Summarization')
+st.title('Personal Newsletter Summarization')
 st.sidebar.title('Admin & Actions')
 
 # Password protection
@@ -73,96 +69,82 @@ if password == correct_password:
         except (RequestException, JSONDecodeError) as add_error:
             st.error(f"An error occurred while adding URL: {str(add_error)}")
 
-    # YouTube Video ID input
-    youtube_video_id_input = st.text_input(
-        'Enter YouTube Video ID to add to the Airtable for processing for today\'s email summary:'
-    ).strip()
-    if youtube_video_id_input and st.button('Add YouTube Video ID'):
-        try:
-            airtable.insert({'YouTube Video ID': youtube_video_id_input})
-            st.success('YouTube Video ID added successfully!')
-        except (RequestException, JSONDecodeError) as add_error:
-            st.error(f"An error occurred while adding YouTube Video ID: {str(add_error)}")
-
-    # View URLs and YouTube Video IDs
-    if st.sidebar.button('View URLs and YouTube Video IDs'):
+    # View URLs
+    if st.sidebar.button('View URLs'):
         try:
             records = airtable.get_all()
-            urls_and_video_ids = [{'URL': record['fields'].get('URL', ''), 'YouTube Video ID': record['fields'].get('YouTube Video ID', '')}
-                                  for record in records if 'URL' in record['fields'] or 'YouTube Video ID' in record['fields']]
-            st.write(urls_and_video_ids)
+            urls = [record['fields']['URL']
+                    for record in records if 'URL' in record['fields']]
+            st.write(urls)
         except (RequestException, JSONDecodeError) as view_error:
             st.error(
-                f"An error occurred while fetching URLs and YouTube Video IDs: {str(view_error)}")
+                f"An error occurred while fetching URLs: {str(view_error)}")
 
     # Execute Summarization
     if st.sidebar.button('Execute Summarization'):
         try:
             st.sidebar.success('Summarization process started...')
-            urls_and_video_ids = [{'URL': record['fields'].get('URL', '').strip(), 'YouTube Video ID': record['fields'].get('YouTube Video ID', '').strip()}
-                                  for record in airtable.get_all() if 'URL' in record['fields'] or 'YouTube Video ID' in record['fields']]
+            urls = [record['fields']['URL']
+                    for record in airtable.get_all() if 'URL' in record['fields']]
             ALL_SUMMARIES = ""
 
-            # Initialize LLM
-            llm = ChatOpenAI(openai_api_key=MY_SECRET,
-                             temperature=0,
-                             model_name="gpt-3.5-turbo-16k")
+            # Custom Prompt Template
+            PROMPT_TEMPLATE = (
+                "Write a high-level executive summary of the following text, and then list the vital key points in bullet form. " # pylint: disable=C0301
+                "The summary should serve as a TL/DR for the content and contain the most important information. If there are topics " # pylint: disable=C0301
+                "that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents " # pylint: disable=C0301
+                "be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the "# pylint: disable=C0301
+                "document text does not focus on these topics you can include a section that talks about how to apply the information to local " # pylint: disable=C0301
+                "marketing.\n\n{text}\n\nSUMMARY:"
+            )
+            PROMPT_TEMPLATE += "\n\n{text}\n\nSUMMARY:"
+            PROMPT = PromptTemplate.from_template(PROMPT_TEMPLATE)
 
-            # Map-Reduce Summarization code
-            for index, item in enumerate(urls_and_video_ids, 1):
-                url = item['URL']
-                youtube_video_id = item['YouTube Video ID']
-
-                if url:
-                    print(f"Loading content from URL: {url}...")
-                    loader = WebBaseLoader(url)
-                elif youtube_video_id:
-                    print(f"Loading transcript from YouTube Video ID: {youtube_video_id}...")
-                    loader = YoutubeLoader(youtube_video_id)
-
+            # Summarization code
+            for index, url in enumerate(urls, 1):
+                print(f"Loading content from URL: {url.strip()}...")
+                loader = WebBaseLoader(url.strip())
                 docs = loader.load()
 
-                # Splitting documents by tokens
-                text_splitter = TokenTextSplitter.from_tiktoken_encoder(chunk_size=1000, chunk_overlap=20)
-                split_docs = text_splitter.split_documents(docs)
+                print("Initializing LLM...")
+                llm = ChatOpenAI(openai_api_key=MY_SECRET,
+                                 temperature=0,
+                                 model_name="gpt-3.5-turbo-16k")
 
-                # Map
-                map_template = """The following is a set of documents\n{docs}\nBased on this list of docs, please identify the main themes \nHelpful Answer:"""
-                map_prompt = PromptTemplate.from_template(map_template)
-                map_chain = LLMChain(llm=llm, prompt=map_prompt)
+                llm_chain = LLMChain(llm=llm, prompt=PROMPT)
 
-                # Reduce
-                reduce_template = """The following is set of summaries:\n{doc_summaries}\nTake these and distill it into a final, consolidated summary of the main themes. \nHelpful Answer:"""
-                reduce_prompt = PromptTemplate.from_template(reduce_template)
-                reduce_chain = LLMChain(llm=llm, prompt=reduce_prompt)
-                combine_documents_chain = StuffDocumentsChain(llm_chain=reduce_chain, document_variable_name="doc_summaries")
-                reduce_documents_chain = ReduceDocumentsChain(combine_documents_chain=combine_documents_chain, collapse_documents_chain=combine_documents_chain)
-
-                # Combining documents by mapping a chain over them, then combining results
-                map_reduce_chain = MapReduceDocumentsChain(llm_chain=map_chain, reduce_documents_chain=reduce_documents_chain, document_variable_name="docs", return_intermediate_steps=False)
-                summary = map_reduce_chain.run(split_docs)
+                print("Loading and running summarization chain...")
+                chain = StuffDocumentsChain(llm_chain=llm_chain,
+                                            document_variable_name="text")
+                summary = chain.run(docs)
 
                 print("Storing summary in a file...")
-                ALL_SUMMARIES += f"{index}. {url if url else youtube_video_id}\n{summary}\n\n"
+                ALL_SUMMARIES += f"{index}. {url.strip()}\n{summary}\n\n"
 
-            # Send Email
-            print("Sending email...")
-            msg = MIMEText(ALL_SUMMARIES)
-            msg['Subject'] = f'Summary for {datetime.today().strftime("%Y-%m-%d")}'
-            msg['From'] = SENDER_KEY
-            msg['To'] = RECEIVER_KEY
-            s = smtplib.SMTP('smtp.postmarkapp.com')
-            s.login('apikey', POSTMARK_SECRET)
-            s.sendmail(SENDER_KEY, [RECEIVER_KEY], msg.as_string())
-            s.quit()
+            # Sending summaries via email
+            sender_email = SENDER_KEY
+            receiver_email = RECEIVER_KEY
+            current_date = datetime.today().strftime('%Y-%m-%d')
+            subject = f"Daily Summaries - {current_date}"
+            message = MIMEText(ALL_SUMMARIES)
+            message["Subject"] = subject
+            message["From"] = sender_email
+            message["To"] = receiver_email
 
-            st.sidebar.success('Summarization process completed successfully!')
+            with smtplib.SMTP("smtp.postmarkapp.com", 587) as server:
+                server.starttls()
+                server.login(POSTMARK_SECRET, POSTMARK_SECRET)
+                server.sendmail(sender_email, receiver_email,
+                                message.as_string())
+
+            st.sidebar.success('Summarization process completed!')
         except (RequestException, JSONDecodeError) as summarize_error:
             st.sidebar.error(
                 f"An error occurred during summarization: {str(summarize_error)}")
 
-    # Clear URLs and YouTube Video IDs
-    if st.sidebar.button('Clear URLs and YouTube Video IDs'):
+    # Clear URLs
+    if st.sidebar.button('Clear URLs'):
         clear_airtable_records(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 else:
-    st.sidebar.error('Incorrect password!')
+    st.sidebar.warning(
+        'Incorrect password. Please enter the correct password to proceed.')
