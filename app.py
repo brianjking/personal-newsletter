@@ -143,7 +143,7 @@ if password == correct_password:
                 reduce_documents_chain = ReduceDocumentsChain(combine_documents_chain=combine_documents_chain, collapse_documents_chain=combine_documents_chain, token_max=4000)
 
                 # Combining documents by mapping a chain over them, then combining results
-                map_reduce_chain = MapReduceDocumentsChain(llm_chain=map_chain, reduce_documents_chain=reduce_documents_chain, document_variable_name="docs", return_intermediate_steps=False)
+                map_reduce_chain = MapReduceDocumentsChain(llm_chain=map_chain, reduce_documents_chain=reduce_documents_chain, document_variable_name="text", return_intermediate_steps=False)
                 text_splitter = CharacterTextSplitter.from_tiktoken_encoder(chunk_size=1000, chunk_overlap=0)
                 split_docs = text_splitter.split_documents(docs)
                 summary = map_reduce_chain.run(split_docs)
