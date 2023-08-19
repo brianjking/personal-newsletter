@@ -27,14 +27,14 @@ def clear_airtable_records(api_key, base_key, table_name):
         st.sidebar.error(f"An error occurred while clearing URLs: {str(e)}")
 
 # Secrets
-my_secret = os.environ['OPENAI_API_KEY']
-postmark_secret = os.environ['postmark_key']
-sender_key = os.environ['sender_key']
-streamlit_key = os.environ['streamlit_key']
-receiver_key = os.environ['receiver_key']
-AIRTABLE_API_KEY = os.environ['airtable_key']
+my_secret = st.secrets['OPENAI_API_KEY']
+postmark_secret = st.secrets['postmark_key']
+sender_key = st.secrets['sender_key']
+streamlit_key = st.secrets['streamlit_key']
+receiver_key = st.secrets['receiver_key']
+AIRTABLE_API_KEY = st.secrets['airtable_key']
 BASE_ID = st.secrets['BASE_ID']
-TABLE_NAME = os.environ['TABLE_NAME']
+TABLE_NAME = st.secrets['TABLE_NAME']
 
 # Initialize Airtable
 airtable = Airtable(BASE_ID, TABLE_NAME, api_key=AIRTABLE_API_KEY)
