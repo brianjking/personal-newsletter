@@ -12,7 +12,7 @@ from requests.exceptions import RequestException
 import streamlit as st
 from airtable import Airtable
 from langchain.chains.mapreduce import MapReduceChain
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import TokenTextSplitter
 from langchain.chains import ReduceDocumentsChain, MapReduceDocumentsChain
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chat_models import ChatOpenAI
@@ -20,16 +20,6 @@ from langchain.document_loaders import WebBaseLoader, YoutubeLoader
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 
-# Prompt Template
-PROMPT_TEMPLATE = (
-    "Write a high-level executive summary of the following text, and then list the vital key points in bullet form. "
-    "The summary should serve as a TL/DR for the content and contain the most important information. If there are topics "
-    "that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents "
-    "be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the "
-    "document text does not focus on these topics you can include a section that talks about how to apply the information to local "
-    "marketing.\n\n{text}\n\nSUMMARY:"
-)
-PROMPT = PromptTemplate.from_template(PROMPT_TEMPLATE)
 
 def clear_airtable_records(api_key, base_key, table_name):
     """
@@ -48,6 +38,7 @@ def clear_airtable_records(api_key, base_key, table_name):
     except (RequestException, JSONDecodeError) as clear_error:
         st.sidebar.error(
             f"An error occurred while clearing URLs and YouTube Video IDs: {str(clear_error)}")
+
 
 # Secrets
 MY_SECRET = os.environ['OPENAI_API_KEY']
@@ -131,8 +122,13 @@ if password == correct_password:
 
                 docs = loader.load()
 
+                # Splitting documents by tokens
+                text_splitter = TokenTextSplitter.from_tiktoken_encoder(chunk_size=100, chunk_overlap=20)
+                split_docs = text_splitter.split_documents(docs)
+
                 # Map
-                map_prompt = PromptTemplate.from_template(PROMPT_TEMPLATE)
+                map_template = """The following is a set of documents\n{docs}\nBased on this list of docs, please identify the main themes \nHelpful Answer:"""
+                map_prompt = PromptTemplate.from_template(map_template)
                 map_chain = LLMChain(llm=llm, prompt=map_prompt)
 
                 # Reduce
@@ -140,34 +136,27 @@ if password == correct_password:
                 reduce_prompt = PromptTemplate.from_template(reduce_template)
                 reduce_chain = LLMChain(llm=llm, prompt=reduce_prompt)
                 combine_documents_chain = StuffDocumentsChain(llm_chain=reduce_chain, document_variable_name="doc_summaries")
-                reduce_documents_chain = ReduceDocumentsChain(combine_documents_chain=combine_documents_chain, collapse_documents_chain=combine_documents_chain, token_max=4000)
+                reduce_documents_chain = ReduceDocumentsChain(combine_documents_chain=combine_documents_chain, collapse_documents_chain=combine_documents_chain)
 
                 # Combining documents by mapping a chain over them, then combining results
-                map_reduce_chain = MapReduceDocumentsChain(llm_chain=map_chain, reduce_documents_chain=reduce_documents_chain, document_variable_name="text", return_intermediate_steps=False)
-                text_splitter = CharacterTextSplitter.from_tiktoken_encoder(chunk_size=1000, chunk_overlap=0)
-                split_docs = text_splitter.split_documents(docs)
+                map_reduce_chain = MapReduceDocumentsChain(llm_chain=map_chain, reduce_documents_chain=reduce_documents_chain, document_variable_name="docs", return_intermediate_steps=False)
                 summary = map_reduce_chain.run(split_docs)
 
                 print("Storing summary in a file...")
                 ALL_SUMMARIES += f"{index}. {url if url else youtube_video_id}\n{summary}\n\n"
 
-            # Sending summaries via email
-            sender_email = SENDER_KEY
-            receiver_email = RECEIVER_KEY
-            current_date = datetime.today().strftime('%Y-%m-%d')
-            subject = f"Daily Summaries - {current_date}"
-            message = MIMEText(ALL_SUMMARIES)
-            message["Subject"] = subject
-            message["From"] = sender_email
-            message["To"] = receiver_email
+            # Send Email
+            print("Sending email...")
+            msg = MIMEText(ALL_SUMMARIES)
+            msg['Subject'] = f'Summary for {datetime.today().strftime("%Y-%m-%d")}'
+            msg['From'] = SENDER_KEY
+            msg['To'] = RECEIVER_KEY
+            s = smtplib.SMTP('smtp.postmarkapp.com')
+            s.login('apikey', POSTMARK_SECRET)
+            s.sendmail(SENDER_KEY, [RECEIVER_KEY], msg.as_string())
+            s.quit()
 
-            with smtplib.SMTP("smtp.postmarkapp.com", 587) as server:
-                server.starttls()
-                server.login(POSTMARK_SECRET, POSTMARK_SECRET)
-                server.sendmail(sender_email, receiver_email,
-                                message.as_string())
-
-            st.sidebar.success('Summarization process completed!')
+            st.sidebar.success('Summarization process completed successfully!')
         except (RequestException, JSONDecodeError) as summarize_error:
             st.sidebar.error(
                 f"An error occurred during summarization: {str(summarize_error)}")
@@ -176,5 +165,4 @@ if password == correct_password:
     if st.sidebar.button('Clear URLs and YouTube Video IDs'):
         clear_airtable_records(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 else:
-    st.sidebar.warning(
-        'Incorrect password. Please enter the correct password to proceed.')
+    st.sidebar.error('Incorrect password!')
