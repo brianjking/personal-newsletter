@@ -123,7 +123,8 @@ if password == correct_password:
                 docs = loader.load()
 
                 # Splitting documents by tokens
-                text_splitter = TokenTextSplitter.from_tiktoken_encoder(chunk_size=100, chunk_overlap=20)
+                print("Starting token splitting...")
+                text_splitter = TokenTextSplitter.from_tiktoken_encoder(chunk_size=1000, chunk_overlap=20)
                 split_docs = text_splitter.split_documents(docs)
 
                 # Map
@@ -143,7 +144,7 @@ if password == correct_password:
                 summary = map_reduce_chain.run(split_docs)
 
                 print("Storing summary in a file...")
-                ALL_SUMMARIES += f"{index}. {url if url else youtube_video_id}\n{summary}\n\n"
+                ALL_SUMMARIES += f"{index}. {url if url else youtube_video_id}\n{summary}\n\n" #TODO: ADD A WAY TO GET TO THE YOUTUBE VIDEO, ADD TITLE, ETC.
 
             # Send Email
             print("Sending email...")
