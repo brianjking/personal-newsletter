@@ -105,7 +105,7 @@ if password == correct_password:
                 overlap_size = 512
 
                 # Split the text into windows using the sliding window approach
-                text = " ".join([doc.body for doc in docs])
+                text = " ".join([doc.get_body() for doc in docs])
                 windows = sliding_window(text, window_size, overlap_size)
 
                 # Process each window separately using the model
