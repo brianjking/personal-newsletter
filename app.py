@@ -20,6 +20,16 @@ from langchain.document_loaders import WebBaseLoader, YoutubeLoader
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 
+# Prompt Template
+PROMPT_TEMPLATE = (
+    "Write a high-level executive summary of the following text, and then list the vital key points in bullet form. "
+    "The summary should serve as a TL/DR for the content and contain the most important information. If there are topics "
+    "that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents "
+    "be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the "
+    "document text does not focus on these topics you can include a section that talks about how to apply the information to local "
+    "marketing.\n\n{text}\n\nSUMMARY:"
+)
+PROMPT = PromptTemplate.from_template(PROMPT_TEMPLATE)
 
 def clear_airtable_records(api_key, base_key, table_name):
     """
@@ -38,7 +48,6 @@ def clear_airtable_records(api_key, base_key, table_name):
     except (RequestException, JSONDecodeError) as clear_error:
         st.sidebar.error(
             f"An error occurred while clearing URLs and YouTube Video IDs: {str(clear_error)}")
-
 
 # Secrets
 MY_SECRET = os.environ['OPENAI_API_KEY']
@@ -123,15 +132,14 @@ if password == correct_password:
                 docs = loader.load()
 
                 # Map
-                map_template = """The following is a set of documents\n{docs}\nBased on this list of docs, please identify the main themes \nHelpful Answer:"""
-                map_prompt = PromptTemplate.from_template(map_template)
+                map_prompt = PromptTemplate.from_template(PROMPT_TEMPLATE)
                 map_chain = LLMChain(llm=llm, prompt=map_prompt)
 
                 # Reduce
                 reduce_template = """The following is set of summaries:\n{doc_summaries}\nTake these and distill it into a final, consolidated summary of the main themes. \nHelpful Answer:"""
                 reduce_prompt = PromptTemplate.from_template(reduce_template)
                 reduce_chain = LLMChain(llm=llm, prompt=reduce_prompt)
-                combine_documents_chain = StuffDocumentsChain(llm_chain=reduce_chain, document_variable_name="doc_summaries")
+                combine_documents_chain = StuffDocumentsChain(llm_chain=reduce_chain, document_variable_name="doc_summaries", token_max=4000)
                 reduce_documents_chain = ReduceDocumentsChain(combine_documents_chain=combine_documents_chain, collapse_documents_chain=combine_documents_chain, token_max=4000)
 
                 # Combining documents by mapping a chain over them, then combining results
