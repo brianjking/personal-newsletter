@@ -139,7 +139,7 @@ if password == correct_password:
                 reduce_template = """The following is set of summaries:\n{doc_summaries}\nTake these and distill it into a final, consolidated summary of the main themes. \nHelpful Answer:"""
                 reduce_prompt = PromptTemplate.from_template(reduce_template)
                 reduce_chain = LLMChain(llm=llm, prompt=reduce_prompt)
-                combine_documents_chain = StuffDocumentsChain(llm_chain=reduce_chain, document_variable_name="doc_summaries", token_max=4000)
+                combine_documents_chain = StuffDocumentsChain(llm_chain=reduce_chain, document_variable_name="doc_summaries")
                 reduce_documents_chain = ReduceDocumentsChain(combine_documents_chain=combine_documents_chain, collapse_documents_chain=combine_documents_chain, token_max=4000)
 
                 # Combining documents by mapping a chain over them, then combining results
