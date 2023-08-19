@@ -9,6 +9,8 @@ from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from datetime import datetime
 from airtable import Airtable
+from largeContext import sliding_window, process_windows, combine_summaries
+
 
 # Function to clear Airtable records
 def clear_airtable_records(api_key, base_key, table_name):
@@ -93,10 +95,23 @@ if password == correct_password:
 
                 llm_chain = LLMChain(llm=llm, prompt=PROMPT)
 
-                print("Loading and running summarization chain...")
-                chain = StuffDocumentsChain(llm_chain=llm_chain,
-                                            document_variable_name="text")
-                summary = chain.run(docs)
+                #print("Loading and running summarization chain...")
+                #chain = StuffDocumentsChain(llm_chain=llm_chain,
+                                            #document_variable_name="text")
+                #summary = chain.run(docs)
+
+                # Set window size and overlap size
+                window_size = 4096
+                overlap_size = 512
+
+                # Split the text into windows using the sliding window approach
+                windows = sliding_window(docs, window_size, overlap_size)
+
+                # Process each window separately using the model
+                summaries = process_windows(windows, llm_chain, prompt_template)
+
+                # Combine the results from each window
+                summary = combine_summaries(summaries, overlap_size)
 
                 print("Storing summary in a file...")
                 all_summaries += f"{index}. {url.strip()}\n{summary}\n\n"
