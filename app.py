@@ -67,64 +67,64 @@ if password == correct_password:
             st.error(f"An error occurred while fetching URLs: {str(e)}")
 
     # Execute Summarization
-if st.sidebar.button('Execute Summarization'):
-    try:
-        st.sidebar.success('Summarization process started...')
-        urls = [record['fields']['URL'] for record in airtable.get_all() if 'URL' in record['fields']]
-        all_summaries = ""
+    if st.sidebar.button('Execute Summarization'):
+        try:
+            st.sidebar.success('Summarization process started...')
+            urls = [record['fields']['URL'] for record in airtable.get_all() if 'URL' in record['fields']]
+            all_summaries = ""
 
-        # Custom Prompt Template
-        prompt_template = """Write a high-level executive summary of the following text, and then list the vital key points in bullet form. The summary should serve as a TL/DR for the content and contain the most important information. If there are topics that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the document text does not focus on these topics you can include a section that talks about how to apply the information to local marketing.
+            # Custom Prompt Template
+            prompt_template = """Write a high-level executive summary of the following text, and then list the vital key points in bullet form. The summary should serve as a TL/DR for the content and contain the most important information. If there are topics that focus on marketing, local marketing, brand compliance, brand voice, marketing or similar topics included in the documents be sure to include these in the summary as they will be interesting to the BrandMuscle employee who reads the summary. If the document text does not focus on these topics you can include a section that talks about how to apply the information to local marketing.
 
-        {text}
+            {text}
 
-        SUMMARY:"""
-        PROMPT = PromptTemplate.from_template(prompt_template)
+            SUMMARY:"""
+            PROMPT = PromptTemplate.from_template(prompt_template)
 
-        # Summarization code
-        for index, url in enumerate(urls, 1):
-            print(f"Loading content from URL: {url.strip()}...")
-            loader = WebBaseLoader(url.strip())
-            docs = loader.load()
+            # Summarization code
+            for index, url in enumerate(urls, 1):
+                print(f"Loading content from URL: {url.strip()}...")
+                loader = WebBaseLoader(url.strip())
+                docs = loader.load()
 
-            print("Initializing LLM...")
-            llm = ChatOpenAI(openai_api_key=my_secret,
-                            temperature=0,
-                            model_name="gpt-3.5-turbo-16k")
+                print("Initializing LLM...")
+                llm = ChatOpenAI(openai_api_key=my_secret,
+                                temperature=0,
+                                model_name="gpt-3.5-turbo-16k")
 
-            llm_chain = LLMChain(llm=llm, prompt=PROMPT)
+                llm_chain = LLMChain(llm=llm, prompt=PROMPT)
 
-            # Set window size and overlap size
-            window_size = 4096
-            overlap_size = 512
+                # Set window size and overlap size
+                window_size = 4096
+                overlap_size = 512
 
-            # Split the text into windows using the sliding window approach
-            text = " ".join([doc.content for doc in docs])
-            windows = sliding_window(text, window_size, overlap_size)
+                # Split the text into windows using the sliding window approach
+                text = " ".join([doc.content for doc in docs])
+                windows = sliding_window(text, window_size, overlap_size)
 
-            # Process each window separately using the model
-            summaries = process_windows(windows, llm_chain, prompt_template)
+                # Process each window separately using the model
+                summaries = process_windows(windows, llm_chain, prompt_template)
 
-            # Combine the results from each window
-            summary = combine_summaries(summaries, overlap_size)
+                # Combine the results from each window
+                summary = combine_summaries(summaries, overlap_size)
 
-            print("Storing summary in a file...")
-            all_summaries += f"{index}. {url.strip()}\n{summary}\n\n"
+                print("Storing summary in a file...")
+                all_summaries += f"{index}. {url.strip()}\n{summary}\n\n"
 
-            # Sending summaries via email
-            sender_email = sender_key
-            receiver_email = receiver_key
-            current_date = datetime.today().strftime('%Y-%m-%d')
-            subject = f"Daily Summaries - {current_date}"
-            message = MIMEText(all_summaries)
-            message["Subject"] = subject
-            message["From"] = sender_email
-            message["To"] = receiver_email
+                # Sending summaries via email
+                sender_email = sender_key
+                receiver_email = receiver_key
+                current_date = datetime.today().strftime('%Y-%m-%d')
+                subject = f"Daily Summaries - {current_date}"
+                message = MIMEText(all_summaries)
+                message["Subject"] = subject
+                message["From"] = sender_email
+                message["To"] = receiver_email
 
-            with smtplib.SMTP("smtp.postmarkapp.com", 587) as server:
-                server.starttls()
-                server.login(postmark_secret, postmark_secret)
-                server.sendmail(sender_email, receiver_email, message.as_string())
+                with smtplib.SMTP("smtp.postmarkapp.com", 587) as server:
+                    server.starttls()
+                    server.login(postmark_secret, postmark_secret)
+                    server.sendmail(sender_email, receiver_email, message.as_string())
 
             st.sidebar.success('Summarization process completed!')
         except Exception as e:
