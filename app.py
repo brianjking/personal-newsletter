@@ -105,7 +105,7 @@ if password == correct_password:
                 overlap_size = 512
 
                 # Split the text into windows using the sliding window approach
-                windows = sliding_window(docs, window_size, overlap_size)
+                windows = sliding_window(" ".join(docs), window_size, overlap_size)
 
                 # Process each window separately using the model
                 summaries = process_windows(windows, llm_chain, prompt_template)
