@@ -7,6 +7,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import WebBaseLoader
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
+from langchain.text_splitter import CharacterTextSplitter
 from datetime import datetime
 from airtable import Airtable
 
@@ -65,6 +66,10 @@ if password == correct_password:
         except Exception as e:
             st.error(f"An error occurred while fetching URLs: {str(e)}")
 
+    # Clear URLs
+    if st.sidebar.button('Clear URLs'):
+        clear_airtable_records(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
+
     # Execute Summarization
     if st.sidebar.button('Execute Summarization'):
         try:
@@ -86,6 +91,17 @@ if password == correct_password:
                 loader = WebBaseLoader(url.strip())
                 docs = loader.load()
 
+                # Assuming docs is a list of Document objects
+                text_to_split = "\n\n".join([doc.page_content for doc in docs])
+                
+                # Splitting text into chunks
+                print("Splitting text into chunks...")
+                splitter = CharacterTextSplitter(separator="\n\n", chunk_size=1500, chunk_overlap=200, length_function=len)
+                chunks = splitter.split_documents(text_to_split)
+                
+                #splitter = CharacterTextSplitter(separator="\n\n", chunk_size=1500, chunk_overlap=200, length_function=len)  # Updated splitter
+                #chunks = splitter.split_documents(text_to_split)  # Splitting the concatenated text
+                
                 print("Initializing LLM...")
                 llm = ChatOpenAI(openai_api_key=my_secret,
                                 temperature=0,
@@ -96,32 +112,27 @@ if password == correct_password:
                 print("Loading and running summarization chain...")
                 chain = StuffDocumentsChain(llm_chain=llm_chain,
                                             document_variable_name="text")
-                summary = chain.run(docs)
 
-                print("Storing summary in a file...")
-                all_summaries += f"{index}. {url.strip()}\n{summary}\n\n"
+                print("Running summarization on each chunk...")
+                for chunk in chunks:
+                    summary = chain.run(chunk)
+                    all_summaries += summary
 
-            # Sending summaries via email
-            sender_email = sender_key
-            receiver_email = receiver_key
-            current_date = datetime.today().strftime('%Y-%m-%d')
-            subject = f"Daily Summaries - {current_date}"
-            message = MIMEText(all_summaries)
-            message["Subject"] = subject
-            message["From"] = sender_email
-            message["To"] = receiver_email
+            # Send email
+            print("Sending email with summaries...")
+            subject = f"Summary for {datetime.today().strftime('%Y-%m-%d')}"
+            msg = MIMEText(all_summaries, 'html')
+            msg['Subject'] = subject
+            msg['From'] = sender_key
+            msg['To'] = receiver_key
 
-            with smtplib.SMTP("smtp.postmarkapp.com", 587) as server:
-                server.starttls()
-                server.login(postmark_secret, postmark_secret)
-                server.sendmail(sender_email, receiver_email, message.as_string())
+            server = smtplib.SMTP('smtp.postmarkapp.com', 587)
+            server.login(sender_key, postmark_secret)
+            server.sendmail(sender_key, receiver_key, msg.as_string())
+            server.quit()
 
-            st.sidebar.success('Summarization process completed!')
+            st.sidebar.success('Summarization process completed successfully!')
         except Exception as e:
             st.sidebar.error(f"An error occurred during summarization: {str(e)}")
-
-    # Clear URLs
-    if st.sidebar.button('Clear URLs'):
-        clear_airtable_records(AIRTABLE_API_KEY, BASE_ID, TABLE_NAME)
 else:
-    st.sidebar.warning('Incorrect password. Please enter the correct password to proceed.')
+    st.sidebar.error('Incorrect password. Please try again.')
