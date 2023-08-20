@@ -7,6 +7,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import WebBaseLoader
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
+from langchain.text_splitter import CharacterTextSplitter 
 from datetime import datetime
 from airtable import Airtable
 from largeContext import sliding_window, process_windows, combine_summaries
