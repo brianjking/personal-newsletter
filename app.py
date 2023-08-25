@@ -112,7 +112,7 @@ if password == correct_password:
             message["From"] = sender_email
             message["To"] = receiver_email
 
-            with smtplib.SMTP(smtpaddress, 587) as server:
+            with smtplib.SMTP(SMTPADDRESS, 587) as server:
                 server.starttls()
                 server.login(postmark_secret, postmark_secret)
                 server.sendmail(sender_email, receiver_email, message.as_string())
