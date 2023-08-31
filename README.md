@@ -14,7 +14,6 @@ To load the service simply click on the button below and enter the password.
 
 * Click "Clear todo" to empty the URLs after sending emails.
 
-
 ### "Roadmap"
 
 The "roadmap" is split into 3 sections and for siplicities sake, it will all be tracked here in this one issue outside of bugs, which may get issues, if they're lucky. 
